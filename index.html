@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Well – Health Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://kit.fontawesome.com/a2e0e9c3e8.js" crossorigin="anonymous"></script>
+</head>
+<body>
+  <header>
+    <h1>🌿 Live Well – The Health Tracker</h1>
+    <button id="signInBtn">Sign In with Google</button>
+    <button id="signOutBtn">Sign Out</button>
+  </header>
+
+  <main>
+    <!-- Steps Tracker -->
+    <section>
+      <h2>🏃 Steps Tracker</h2>
+      <div class="progress-bar"><div class="progress" id="stepsProgress">0%</div></div>
+      <button id="addStepsBtn">+1000 Steps</button>
+      <button id="resetStepsBtn" class="reset">Reset</button>
+    </section>
+
+    <!-- Heartbeat -->
+    <section>
+      <h2>❤️ Heartbeat Monitor</h2>
+      <p id="heartbeatValue">--</p>
+      <button id="heartbeatBtn">Measure</button>
+    </section>
+
+    <!-- Calories -->
+    <section>
+      <h2>🔥 Calories Tracker</h2>
+      <canvas id="caloriesChart" width="150" height="150"></canvas>
+      <p><b id="caloriesValue">0</b> kcal</p>
+      <button id="addCaloriesBtn">+200 kcal</button>
+      <button id="resetCaloriesBtn" class="reset">Reset</button>
+    </section>
+
+    <!-- Weight -->
+    <section>
+      <h2>⚖️ Weight Management</h2>
+      <input type="number" id="weightInput" placeholder="Enter weight (kg)" />
+      <button id="addWeightBtn">Add</button>
+      <button id="resetWeightBtn" class="reset">Reset</button>
+      <ul id="weightHistory"></ul>
+      <button id="calcBMI">Calculate BMI</button>
+      <p id="bmiResult"></p>
+    </section>
+
+    <!-- Water Intake -->
+    <section>
+      <h2>💧 Water Tracker</h2>
+      <div class="progress-bar"><div class="progress" id="waterProgress">0%</div></div>
+      <button id="addWaterBtn">+1 Glass</button>
+      <button id="resetWaterBtn" class="reset">Reset</button>
+    </section>
+
+    <!-- Sleep Tracker -->
+    <section>
+      <h2>🌙 Sleep Tracker</h2>
+      <p id="sleepAvg">-- hrs (avg)</p>
+      <button id="addSleepBtn">Add Sleep</button>
+    </section>
+
+    <!-- Diet Plan -->
+    <section>
+      <h2>🍎 Daily Diet Plan</h2>
+      <p id="dietPlan"></p>
+      <div class="recipe">
+        <img id="recipeImage" src="" alt="Recipe Image" />
+        <h3 id="recipeTitle"></h3>
+        <p id="recipeDesc"></p>
+      </div>
+      <button id="tomorrowBtn">Tomorrow’s Plan</button>
+    </section>
+
+    <!-- Weekly Summary -->
+    <section id="weeklySummary">
+      <h3>📊 Weekly Summary</h3>
+      <p>Steps: 0</p>
+      <p>Calories: 0</p>
+      <p>Avg Sleep: 0 hrs</p>
+    </section>
+  </main>
+
+  <!-- Recipe Modal -->
+  <div id="recipeModal" class="modal">
+    <div class="modal-content">
+      <span id="closeModal" class="close">&times;</span>
+      <h2 id="modalTitle"></h2>
+      <img id="modalImage" src="" alt="Recipe Image" />
+      <p id="modalInstructions"></p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
