@@ -1,0 +1,262 @@
+// 🔹 Firebase Config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// 🔹 Auth Buttons
+document.getElementById("signInBtn").onclick = () => {
+  auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+    .then(res => alert("Signed in as: " + res.user.displayName));
+};
+document.getElementById("signOutBtn").onclick = () =>
+  auth.signOut().then(() => alert("Signed out"));
+
+// 🔹 User Data
+let steps = 0, calories = 0, weightHistory = [], currentUser = null;
+let waterIntake = 0, sleepLog = [];
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    currentUser = user;
+    const userRef = db.collection("users").doc(user.uid);
+    userRef.get().then(doc => {
+      if (doc.exists) {
+        const data = doc.data();
+        steps = data.steps || 0;
+        calories = data.calories || 0;
+        weightHistory = data.weightHistory || [];
+        waterIntake = data.waterIntake || 0;
+        sleepLog = data.sleepLog || [];
+      }
+      renderAll();
+    });
+  } else currentUser = null;
+});
+
+// 🔹 Save Data
+function saveData(field, value) {
+  if (currentUser)
+    db.collection("users").doc(currentUser.uid).set({ [field]: value }, { merge: true });
+}
+
+// --- STEPS ---
+document.getElementById("addStepsBtn").onclick = () => {
+  steps += 1000; saveData("steps", steps); renderSteps();
+};
+document.getElementById("resetStepsBtn").onclick = () => {
+  if (confirm("Reset steps?")) { steps = 0; saveData("steps", steps); renderSteps(); }
+};
+function renderSteps() {
+  let pct = Math.min((steps / 10000) * 100, 100);
+  const p = document.getElementById("stepsProgress");
+  p.style.width = pct + "%";
+  p.innerText = Math.round(pct) + "%";
+}
+
+// --- HEARTBEAT ---
+document.getElementById("heartbeatBtn").onclick = () =>
+  document.getElementById("heartbeatValue").innerText = Math.floor(Math.random() * 60 + 60);
+
+// --- CALORIES ---
+document.getElementById("addCaloriesBtn").onclick = () => {
+  calories += 200; saveData("calories", calories); renderCalories();
+};
+document.getElementById("resetCaloriesBtn").onclick = () => {
+  if (confirm("Reset calories?")) { calories = 0; saveData("calories", calories); renderCalories(); }
+};
+function renderCalories() {
+  document.getElementById("caloriesValue").innerText = calories;
+  let ctx = document.getElementById("caloriesChart").getContext("2d");
+  ctx.clearRect(0, 0, 150, 150);
+  ctx.beginPath(); ctx.arc(75, 75, 60, 0, 2 * Math.PI);
+  ctx.strokeStyle = "#ddd"; ctx.lineWidth = 15; ctx.stroke();
+  let pct = Math.min(calories / 2000, 1);
+  ctx.beginPath();
+  ctx.arc(75, 75, 60, -0.5 * Math.PI, (pct * 2 * Math.PI) - 0.5 * Math.PI);
+  ctx.strokeStyle = "#ff4500"; ctx.lineWidth = 15; ctx.stroke();
+}
+
+// --- WEIGHT ---
+document.getElementById("addWeightBtn").onclick = () => {
+  let val = document.getElementById("weightInput").value;
+  if (val) {
+    weightHistory.push(parseFloat(val));
+    saveData("weightHistory", weightHistory);
+    renderWeight();
+    document.getElementById("weightInput").value = "";
+  }
+};
+document.getElementById("resetWeightBtn").onclick = () => {
+  if (confirm("Reset weight?")) {
+    weightHistory = [];
+    saveData("weightHistory", weightHistory);
+    renderWeight();
+  }
+};
+function renderWeight() {
+  const list = document.getElementById("weightHistory");
+  list.innerHTML = "";
+  weightHistory.forEach(w => {
+    let li = document.createElement("li");
+    li.innerText = w + " kg";
+    list.appendChild(li);
+  });
+}
+
+// --- BMI Calculator ---
+document.getElementById("calcBMI").onclick = () => {
+  const weight = weightHistory[weightHistory.length - 1];
+  const height = prompt("Enter your height in meters:");
+  if (height && weight) {
+    const bmi = (weight / (height * height)).toFixed(1);
+    let category = "Normal";
+    if (bmi < 18.5) category = "Underweight";
+    else if (bmi > 25) category = "Overweight";
+    document.getElementById("bmiResult").innerText = `BMI: ${bmi} (${category})`;
+  } else alert("Please log your weight first.");
+};
+
+// --- WATER TRACKER ---
+const waterGoal = 8;
+function renderWater() {
+  const el = document.getElementById("waterProgress");
+  const pct = Math.min((waterIntake / waterGoal) * 100, 100);
+  el.style.width = pct + "%";
+  el.innerText = waterIntake + " / " + waterGoal + " glasses";
+}
+document.getElementById("addWaterBtn").onclick = () => {
+  if (waterIntake < waterGoal) waterIntake++;
+  saveData("waterIntake", waterIntake);
+  renderWater();
+};
+document.getElementById("resetWaterBtn").onclick = () => {
+  if (confirm("Reset water intake?")) {
+    waterIntake = 0; saveData("waterIntake", waterIntake); renderWater();
+  }
+};
+
+// --- SLEEP TRACKER ---
+document.getElementById("addSleepBtn").onclick = () => {
+  const hours = prompt("How many hours did you sleep?");
+  if (hours && !isNaN(hours)) {
+    const today = new Date().toISOString().split("T")[0];
+    sleepLog.push({ date: today, hours: parseFloat(hours) });
+    saveData("sleepLog", sleepLog);
+    renderSleep();
+  }
+};
+function renderSleep() {
+  const avg = sleepLog.length
+    ? (sleepLog.reduce((a, b) => a + b.hours, 0) / sleepLog.length).toFixed(1)
+    : 0;
+  document.getElementById("sleepAvg").innerText = avg + " hrs (avg)";
+}
+
+// --- MOTIVATIONAL QUOTE ---
+const quotes = [
+  "💪 Push yourself because no one else is going to do it for you.",
+  "🚶‍♀️ One step at a time leads to success.",
+  "🌿 Take care of your body. It's the only place you have to live.",
+  "🥗 Healthy habits, happy life.",
+  "🔥 Don’t wish for it, work for it."
+];
+function showQuote() {
+  const q = quotes[Math.floor(Math.random() * quotes.length)];
+  const el = document.createElement("p");
+  el.innerText = q;
+  el.style.fontStyle = "italic";
+  el.style.color = "#555";
+  el.style.marginTop = "10px";
+  document.querySelector("header").appendChild(el);
+}
+showQuote();
+
+// --- WEEKLY SUMMARY ---
+function renderSummary() {
+  const avgSleep = sleepLog.length
+    ? (sleepLog.reduce((a, b) => a + b.hours, 0) / sleepLog.length).toFixed(1)
+    : 0;
+  document.getElementById("weeklySummary").innerHTML = `
+    <h3>📊 Weekly Summary</h3>
+    <p>Steps: ${steps}</p>
+    <p>Calories: ${calories}</p>
+    <p>Avg Sleep: ${avgSleep} hrs</p>
+  `;
+}
+
+// --- DIET PLAN ---
+const dietPlans = [
+  "🍎 Breakfast: Oats+Almonds | Lunch: Chicken+Rice | Dinner: Veg Soup",
+  "🥗 Breakfast: Smoothie | Lunch: Fish+Salad | Dinner: Paneer+Roti",
+  "🍞 Breakfast: Eggs+Toast | Lunch: Dal+BrownRice | Dinner: Chicken Salad"
+];
+const recipes = [
+  {
+    title: "Protein Smoothie",
+    img: "https://www.eatingwell.com/thmb/V9tAeP9eZzSm3JzJbfiNwFzXZsw=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/banana-protein-smoothie.jpg",
+    desc: "🥤 Milk+Banana+Peanut Butter+Whey"
+  },
+  {
+    title: "Egg Omelette",
+    img: "https://www.eatingwell.com/thmb/gNqACXYz00o1oJzD-6dOyfVwJHg=/1500x0/spinach-omelet.jpg",
+    desc: "🍳 Eggs+Spinach+Onion"
+  },
+  {
+    title: "Grilled Salmon",
+    img: "https://www.eatingwell.com/thmb/0P9pM7F-FuBYVvMsyV6E03z6lP8=/1500x0/grilled-salmon.jpg",
+    desc: "🐟 Salmon+Quinoa+Veggies"
+  }
+];
+const recipeInstructions = [
+  "Blend 1 cup milk, 1 banana, 1 tbsp peanut butter, 1 scoop whey. Serve chilled.",
+  "Beat 2 eggs, add chopped spinach & onion. Cook until set.",
+  "Season salmon, grill 4-5 mins per side, serve with quinoa."
+];
+document.getElementById("recipeImage").onclick = () => {
+  const today = new Date();
+  const index = today.getDate() % recipes.length;
+  document.getElementById("modalTitle").innerText = recipes[index].title;
+  document.getElementById("modalImage").src = recipes[index].img;
+  document.getElementById("modalInstructions").innerText = recipeInstructions[index];
+  document.getElementById("recipeModal").style.display = "flex";
+};
+document.getElementById("closeModal").onclick = () =>
+  (document.getElementById("recipeModal").style.display = "none");
+function showDaily() {
+  const today = new Date();
+  const index = today.getDate() % dietPlans.length;
+  document.getElementById("dietPlan").innerText = dietPlans[index];
+  let r = recipes[index];
+  document.getElementById("recipeImage").src = r.img;
+  document.getElementById("recipeTitle").innerText = r.title;
+  document.getElementById("recipeDesc").innerText = r.desc;
+}
+document.getElementById("tomorrowBtn").onclick = () => {
+  let t = new Date();
+  t.setDate(t.getDate() + 1);
+  let index = t.getDate() % dietPlans.length;
+  document.getElementById("dietPlan").innerText = dietPlans[index] + " (Tomorrow)";
+  let r = recipes[index];
+  document.getElementById("recipeImage").src = r.img;
+  document.getElementById("recipeTitle").innerText = r.title + " (Tomorrow)";
+  document.getElementById("recipeDesc").innerText = r.desc;
+};
+
+// --- RENDER ALL ---
+function renderAll() {
+  renderSteps();
+  renderCalories();
+  renderWeight();
+  renderWater();
+  renderSleep();
+  renderSummary();
+  showDaily();
+}
